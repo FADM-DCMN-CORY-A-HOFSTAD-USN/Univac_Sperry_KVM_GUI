@@ -4,6 +4,7 @@
  */
 import { SperryTuiScreen } from '../components/tui-screen.js';
 import { SperryConfigGuiPanel } from '../modules/config-panel.js';
+import { RadioAmps1400Panel } from '../modules/radio-amps-1400.js'; // Mount Radio Amps Panel
 import { System110080Panel } from '../modules/system-1100-80.js';
 import { UnivacBridgeClient } from './bridge-client.js'; 
 import { MainframeTelemetryMock } from './telemetry-mock.js';
@@ -38,6 +39,19 @@ export class UnivacKvmManager {
 
         this.configGui.init();
         this.hardwarePanel.init();
+        
+        // Bind logging channels across views
+        window.addEventListener('radio-telemetry-log', (e) => {
+            if (this.configGui) {
+                this.configGui.appendTelemetryLog("RADIO_ROOM", `Transmitter array write operation: [${e.detail.param}] configured to value index state [${e.detail.value}]`);
+            }
+        });
+
+        // Remainder of your initialization routine stays clean and unified...
+        this.bindNavigationTargets();
+        this.bindSimulationButtons();
+        this.registerKeyboardShortcuts();
+        this.updateViewportState();
 
         // 3. Bind WebSocket network state alerts directly to the non-scrolling TUI status row 25
         this.bridge.registerStatusListener((status) => {
