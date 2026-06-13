@@ -153,3 +153,67 @@
     box-sizing: border-box;
     outline: none;
 }
+/* HOOK 1: Application Window Top-Left Menu Icon Target Area */
+.sperry-app-icon-slot {
+    width: 16px;
+    height: 16px;
+    background-image: url('../branding/sperry-software-icon.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    /* Red-Blue fallback icon if your file path isn't loaded yet */
+    background-color: #E14A1D; 
+}
+
+/* HOOK 2: Embedded Sunburst Brand Text Logo Inside the Banner Header */
+.banner-left-logo-slot {
+    width: 120px;
+    height: 45px;
+    position: absolute;
+    left: 12px;
+    top: 8px;
+    background-image: url('../branding/sperry-logo-gold.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: left center;
+}
+
+/* Compensate space inside the banner for text alignment next to the logo logo target */
+.banner-title-text {
+    margin-left: 130px; 
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+    font-size: 19px;
+    color: #032E6A;
+    letter-spacing: -0.5px;
+    z-index: 2;
+}
+
+/* HOOK 3: Right Side Office Professional Banner Clip Art Backdrop Panel */
+.banner-right-photo-slot {
+    width: 240px;
+    height: 62px;
+    position: absolute;
+    right: 0;
+    top: 0;
+    background-image: url('../branding/corporate-banner-bg.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: right center;
+    z-index: 1;
+}
+
+/* HOOK 4: Grid Data Table Inside Cell Element Icons */
+.table-cell-icon-slot {
+    width: 32px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid #D6A86B;
+    background-image: url('../branding/addin-bell-icon.png');
+    background-size: 16px 16px;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
