@@ -1,31 +1,30 @@
 /**
- * Sperry Software Dynamic WinForms Renderer with Local Persistence
- * Dynamically builds user interfaces based on incoming bridge schemas from:
- * - Univac-Aegis-bridge
- * - Basic-Aviation-Knowledge
+ * Sperry Software Dynamic WinForms Renderer with Real-time Telemetry Data Logging
+ * Renders automated fields and monitors real-time transactions from Aegis & Aviation repositories.
  */
 export class SperryConfigGuiPanel {
     constructor(containerId, bridgeClient) {
         this.container = document.getElementById(containerId);
         this.bridge = bridgeClient;
         
-        // Active schema definitions loaded from the connected Univac machine node
         this.currentSchema = [];
         this.activeNodeId = "UNIVAC_DEFAULT_NODE";
         this.localSettingsCache = {};
+
+        // Telemetry Logging Constants
+        this.MAX_LOG_LINES = 100; 
     }
 
     /**
-     * Entry hook to render the window container frame skeleton
+     * Initializes structural window frames and hooks fallback data
      */
     init() {
         this.renderWindowFrame();
-        // Load default placeholder schemas to preview configuration options
         this.loadFallbackSchema();
     }
 
     /**
-     * Renders the pixel-perfect WinForms window shell with asset clip-art hooks
+     * Renders pixel-perfect WinForms shell containing the real-time logging viewport
      */
     renderWindowFrame() {
         this.container.innerHTML = `
@@ -48,9 +47,9 @@ export class SperryConfigGuiPanel {
                     </div>
 
                     <!-- Split Panel Content Grid Workspace Wrapper Layout -->
-                    <div style="display: flex; padding: 6px; gap: 8px; height: calc(100% - 94px); box-sizing: border-box;">
+                    <div style="display: flex; padding: 6px; gap: 8px; height: calc(100% - 158px); box-sizing: border-box;">
                         
-                        <!-- LEFT HAND WORKSPACE: INSTALLED MODULE LISTINGS / TREE VIEW -->
+                        <!-- LEFT HAND WORKSPACE: CONNECTED TREE VIEW -->
                         <div style="width: 172px; display: flex; flex-direction: column;">
                             <div class="winforms-groupbox" style="height: 100%; margin-top: 4px; padding-top: 12px;">
                                 <span class="winforms-groupbox-legend">Connected Modules</span>
@@ -59,27 +58,32 @@ export class SperryConfigGuiPanel {
                                         <div class="table-header-cell" style="width: 38px; text-align: center;">On</div>
                                         <div class="table-header-cell" style="flex-grow: 1; border-right: none;">Module Node ID</div>
                                     </div>
-                                    <div id="winforms-module-rows-container">
-                                        <!-- Node items will be generated here -->
-                                    </div>
+                                    <div id="winforms-module-rows-container"></div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- RIGHT HAND WORKSPACE: AUTOMATED DYNAMIC FORM FACTORY AREA -->
+                        <!-- RIGHT HAND WORKSPACE: DYNAMIC CONTROLS FORM FACTORY -->
                         <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; overflow-y: auto;">
                             <div class="winforms-groupbox" style="margin-top: 4px; padding-top: 14px; flex-grow: 1;" id="winforms-dynamic-controls-root">
-                                <span class="winforms-groupbox-legend" id="winforms-controls-legend">Configuration Parameters</span>
-                                <div id="winforms-factory-fields-container" style="display: flex; flex-direction: column; gap: 8px; padding-left: 2px;">
-                                    <!-- Dynamic layout inputs injector field -->
-                                </div>
+                                <span class="winforms-groupbox-legend">Configuration Parameters</span>
+                                <div id="winforms-factory-fields-container" style="display: flex; flex-direction: column; gap: 8px; padding-left: 2px;"></div>
                             </div>
                         </div>
+                    </div>
 
+                    <!-- REAL-TIME TELEMETRY DATA LOGGING VIEWER BLOCK (WinForms RichTextBox emulation) -->
+                    <div style="padding: 0 6px; box-sizing: border-box; height: 64px;">
+                        <div class="winforms-groupbox" style="margin-top: 0; padding: 4px; height: 100%; background-color: #FFFFFF; border: 1px solid #7F9DB9; overflow-y: scroll; position: relative;" id="winforms-telemetry-logger">
+                            <span class="winforms-groupbox-legend" style="background-color: #FFFFFF; color: #1E395B; font-weight: bold;">Real-Time Telemetry Log</span>
+                            <div id="winforms-log-stream-root" style="font-family: 'Courier New', monospace; font-size: 10px; color: #333333; line-height: 12px; white-space: pre-wrap; padding-top: 4px;">
+[SYSTEM INITIALIZED] Awaiting real-time stream capture frames from Univac-Aegis-bridge...
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Bottom Status Tray Spacer Block Pane -->
-                    <div style="height: 26px; border: 1px solid #A0A0A0; margin: 0 6px; background-color: #E9EEF4; font-size: 11px; padding: 4px; box-sizing: border-box;" id="winforms-gui-statusbar">
+                    <div style="height: 22px; border-top: 1px solid #D6D6D6; margin: 4px 6px 0 6px; background-color: #F0F0F0; font-size: 11px; padding: 3px 5px; box-sizing: border-box;" id="winforms-gui-statusbar">
                         Status: Synchronization verified with Local Storage cache.
                     </div>
 
@@ -93,7 +97,7 @@ export class SperryConfigGuiPanel {
                         <div style="display: flex; gap: 4px;">
                             <button class="winforms-btn" id="gui-btn-ok">OK</button>
                             <button class="winforms-btn">Cancel</button>
-                            <button class="winforms-btn" id="gui-btn-apply" style="color: #000000;">Apply</button>
+                            <button class="winforms-btn" id="gui-btn-apply">Apply</button>
                         </div>
                     </div>
 
@@ -105,158 +109,119 @@ export class SperryConfigGuiPanel {
     }
 
     /**
-     * Accepts a dynamic configuration schema block sent over the bridge WebSocket pipeline
-     * @param {string} nodeId - Identifier for the active machine module
-     * @param {string} bannerTitle - Text descriptor for the banner plate
-     * @param {Array} schemaFields - Layout specifications array
+     * Append transaction logs coming across network sockets onto the streaming panel view
+     * @param {string} source - Origin module identification tag (e.g., 'AEGIS', 'AVIATION')
+     * @param {string} logMessage - Raw telemetry descriptor parameters
      */
+    appendTelemetryLog(source, logMessage) {
+        const logRoot = document.getElementById('winforms-log-stream-root');
+        const loggerScroller = document.getElementById('winforms-telemetry-logger');
+        if (!logRoot || !loggerScroller) return;
+
+        const timestamp = new Date().toLocaleTimeString();
+        const outputLine = `[${timestamp}][${source}] ${logMessage}\n`;
+
+        // Inject line node safely into the container frame array tracking loop
+        logRoot.innerText += outputLine;
+
+        // Strip oldest rows if buffer breaks configuration limits
+        const logLines = logRoot.innerText.split('\n');
+        if (logLines.length > this.MAX_LOG_LINES) {
+            logRoot.innerText = logLines.slice(logLines.length - this.MAX_LOG_LINES).join('\n');
+        }
+
+        // Force scroller to stick to bottom for live updates, unless user has scrolled up to inspect logs
+        const threshold = 25; 
+        const isScrolledToBottom = loggerScroller.scrollHeight - loggerScroller.clientHeight - loggerScroller.scrollTop < threshold;
+        if (isScrolledToBottom) {
+            loggerScroller.scrollTop = loggerScroller.scrollHeight;
+        }
+    }
+
     updateActiveNodeSchema(nodeId, bannerTitle, schemaFields) {
         this.activeNodeId = nodeId;
         this.currentSchema = schemaFields;
 
-        // Synchronize display text fields
         const titleEl = document.getElementById('winforms-dynamic-title');
         const bannerEl = document.getElementById('winforms-banner-text');
         if (titleEl) titleEl.textContent = `Sperry Software Node Configuration [${nodeId}]`;
         if (bannerEl) bannerEl.textContent = bannerTitle;
 
-        // Fetch stored configurations matching this unique module node ID key from memory
         this.loadSettingsFromStorage();
-        
-        // Repaint left modules tracker strip
         this.renderModuleListings();
-
-        // Generate form fields inside the WinForms container area
         this.generateFormControls();
+        
+        this.appendTelemetryLog("SYSTEM", `Switched connection schema configuration mapping focus context to: ${nodeId}`);
     }
 
-    /**
-     * Pulls settings values directly out from browser Local Storage partitions
-     */
     loadSettingsFromStorage() {
         const storageKey = `SPERRY_GUI_CFG_${this.activeNodeId}`;
         const serialized = localStorage.getItem(storageKey);
-        
-        if (serialized) {
-            try {
-                this.localSettingsCache = JSON.parse(serialized);
-                console.log(`💾 LocalStorage configuration retrieved successfully for node: ${this.activeNodeId}`, this.localSettingsCache);
-            } catch (e) {
-                console.error("⚠️ LocalStorage parser fault. Defaulting cache maps.");
-                this.localSettingsCache = {};
-            }
-        } else {
-            this.localSettingsCache = {};
-        }
+        this.localSettingsCache = serialized ? JSON.parse(serialized) : {};
     }
 
-    /**
-     * Commits active UI configurations securely into browser disk storage blocks
-     */
     saveSettingsToStorage() {
         const storageKey = `SPERRY_GUI_CFG_${this.activeNodeId}`;
-        
-        // Extract updated parameters directly out from the form interface DOM tree elements
         this.currentSchema.forEach(field => {
             const inputElement = document.getElementById(`wf-field-${field.key}`);
             if (!inputElement) return;
-
-            if (field.type === 'boolean') {
-                this.localSettingsCache[field.key] = inputElement.checked;
-            } else if (field.type === 'string' || field.type === 'number') {
-                this.localSettingsCache[field.key] = inputElement.value;
-            }
+            this.localSettingsCache[field.key] = field.type === 'boolean' ? inputElement.checked : inputElement.value;
         });
 
         localStorage.setItem(storageKey, JSON.stringify(this.localSettingsCache));
         
         const statusbar = document.getElementById('winforms-gui-statusbar');
-        if (statusbar) statusbar.textContent = `Status: Changes committed to LocalStorage for ${this.activeNodeId} at ${new Date().toLocaleTimeString()}`;
+        if (statusbar) statusbar.textContent = `Status: Changes committed to LocalStorage for ${this.activeNodeId}`;
+        
+        this.appendTelemetryLog("SYSTEM", `Configuration adjustments saved to disk and dispatched down bridge lines.`);
 
-        // Stream the configuration package directly out over your Univac Aegis bridge connection pipeline
         if (this.bridge && typeof this.bridge.sendPayload === 'function') {
-            this.bridge.sendPayload("NODE_CFG_SYNC", {
-                node: this.activeNodeId,
-                settings: this.localSettingsCache
-            });
+            this.bridge.sendPayload("NODE_CFG_SYNC", { node: this.activeNodeId, settings: this.localSettingsCache });
         }
     }
 
-    /**
-     * Builds individual WinForms element rows dynamically based on the current configuration schema
-     */
     generateFormControls() {
         const container = document.getElementById('winforms-factory-fields-container');
         if (!container) return;
-
         let htmlPayload = "";
 
         this.currentSchema.forEach(field => {
-            // Determine active value using local storage values or fall back to default metadata profiles
-            const activeValue = this.localSettingsCache[field.key] !== undefined ? 
-                                this.localSettingsCache[field.key] : field.default;
-
-            if (field.type === 'boolean') {
-                const checkedAttr = activeValue ? 'checked' : '';
-                htmlPayload += `
-                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
-                    <input type="checkbox" id="wf-field-${field.key}" ${checkedAttr}>
-${field.label}
-
-; } else if (field.type === 'string' || field.type === 'number') { htmlPayload += 
-
-${field.label}
-
-
-`;
+const activeValue = this.localSettingsCache[field.key] !== undefined ? this.localSettingsCache[field.key] : field.default;
+if (field.type === 'boolean') {
+htmlPayload += <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;"> <input type="checkbox" id="wf-field-${field.key}" ${activeValue ? 'checked' : ''}> <span>${field.label}</span> </label>;
+} else if (field.type === 'string' || field.type === 'number') {
+htmlPayload += <div style="display: flex; flex-direction: column; gap: 2px;"> <label style="font-size: 11px;">${field.label}</label> <input type="text" class="winforms-input-text" id="wf-field-${field.key}" value="${activeValue}" style="width: ${field.width || '100%'};"> </div>;
 }
 });
 container.innerHTML = htmlPayload;
 }
 renderModuleListings() {
 const listContainer = document.getElementById('winforms-module-rows-container');
-if (!listContainer) return;
-listContainer.innerHTML = <div class="addins-table-row"> <div style="width: 38px; text-align: center;"><input type="checkbox" checked style="margin: 0;"></div> <div style="flex-grow: 1; padding-left: 4px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"> ${this.activeNodeId} </div> </div>;
+if (listContainer) {
+listContainer.innerHTML = <div class="addins-table-row"> <div style="width: 38px; text-align: center;"><input type="checkbox" checked style="margin: 0;"></div> <div style="flex-grow: 1; padding-left: 4px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${this.activeNodeId}</div> </div>;
+}
 }
 bindUserInteractions() {
-const applyBtn = this.container.querySelector('#gui-btn-apply');
-const okBtn = this.container.querySelector('#gui-btn-ok');
-const resetBtn = this.container.querySelector('#gui-btn-reset');
-if (applyBtn) {
-applyBtn.addEventListener('click', (e) => {
+this.container.addEventListener('click', (e) => {
+if (e.target.id === 'gui-btn-apply' || e.target.id === 'gui-btn-ok') {
 e.preventDefault();
 this.saveSettingsToStorage();
-});
 }
-if (okBtn) {
-okBtn.addEventListener('click', (e) => {
-e.preventDefault();
-this.saveSettingsToStorage();
-console.log("OK Clicked - Settings synced across network pipelines safely.");
-});
-}
-if (resetBtn) {
-resetBtn.addEventListener('click', (e) => {
+if (e.target.id === 'gui-btn-reset') {
 e.preventDefault();
 localStorage.removeItem(SPERRY_GUI_CFG_${this.activeNodeId});
 this.loadSettingsFromStorage();
 this.generateFormControls();
+this.appendTelemetryLog("SYSTEM", "Settings storage blocks wiped clean for active module.");
+}
 });
 }
-}
-/**
-* Fallback configuration definitions combining variables from both repositories
-*/
 loadFallbackSchema() {
 const mockCombinedSchema = [
-// Basic-Aviation-Knowledge Telemetry Variables
 { key: 'air_speed_knots', label: 'Air Speed Tracking Limit (Knots)', type: 'number', default: '450', width: '80px' },
 { key: 'altitude_hold_ft', label: 'Target Altitude Target Constraint (Feet)', type: 'number', default: '32000', width: '110px' },
 { key: 'aviation_compass_sync', label: 'Enable Aviation Bridge Gyro Autopilot Sync', type: 'boolean', default: true },
-// Univac-Aegis-bridge System Connection Variables
-{ key: 'aegis_radar_interleave', label: 'Aegis AN/SPY-1 Radar Stream Interleave Rate (ms)', type: 'number', default: '250', width: '70px' },
-{ key: 'auto_purge_dropped_frames', label: 'Auto-Purge corrupted data pipeline frames instantly', type: 'boolean', default: false },
-{ key: 'bridge_frequency_hz', label: 'Univac Mainframe Interface Comm Frequency (Hz)', type: 'string', default: '1100_HIGH', width: '150px' }
+{ key: 'aegis_radar_interleave', label: 'Aegis AN/SPY-1 Radar Stream Interleave Rate (ms)', type: 'number', default: '250', width: '70px' }
 ];
 this.updateActiveNodeSchema("AEGIS_AVIATION_BRIDGE_NODE", "Aegis & Aviation Core Control", mockCombinedSchema);
 }
@@ -264,18 +229,25 @@ this.updateActiveNodeSchema("AEGIS_AVIATION_BRIDGE_NODE", "Aegis & Aviation Core
 
 ---
 
-### 2. Live WebSocket Data Pipeline Hook (`src/core/kvm-manager.js`)
+### 2. Upstream Core Thread Route Integration (`src/core/kvm-manager.js`)
 
-We will update your main KVM manager to listen for upstream data events sent from your connected repositories. When a node switches or a new configuration block is broadcast over the websocket, the interface intercepts the payload and re-generates the form controls automatically.
+We will update your master KVM manager's telemetry interceptor loop to automatically parse raw data lines from your connected repositories. This funnels the data into the logging viewer in real time, even when the GUI viewport is hidden or running in the background.
 
 ```javascript
     /**
      * Core router handling inbound live mainframe schema updates or register changes
      */
     handleIncomingTelemetry(envelope) {
-        // Telemetry Event 1: Mainframe registers change (Toggles switches or turns dials)
+        // Telemetry Event 1: Physical register changes (Switches and dials sync)
         if (envelope.action === "CORE_REG_UPDATE") {
             const { reg, val } = envelope.payload;
+            
+            // Push structured text diagnostic parameters directly onto our WinForms logging console
+            if (this.configGui && typeof this.configGui.appendTelemetryLog === 'function') {
+                const sourceTag = reg.startsWith('Z4_CH') ? 'AVIATION' : 'AEGIS';
+                this.configGui.appendTelemetryLog(sourceTag, `Transaction accepted. Register allocation address write: [${reg}] mapped to value states [${val}]`);
+            }
+
             if (this.hardwarePanel && this.hardwarePanel.controls[reg]) {
                 const controlItem = this.hardwarePanel.controls[reg];
                 if (typeof controlItem.updateHardwareState === 'function') {
@@ -287,13 +259,10 @@ We will update your main KVM manager to listen for upstream data events sent fro
             }
         }
         
-        // Telemetry Event 2: Dynamic metadata schema update pushed from live repositories
+        // Telemetry Event 2: Dynamic metadata schema updates pushed from live repositories
         else if (envelope.action === "METADATA_SCHEMA_PUSH") {
             const { nodeId, bannerTitle, fields } = envelope.payload;
-            console.log(`📥 Dynamic WinForms Generation Matrix Triggered for Node: [${nodeId}]`);
-            
             if (this.configGui) {
-                // Regenerate the interface controls on the fly using live repository fields
                 this.configGui.updateActiveNodeSchema(nodeId, bannerTitle, fields);
             }
         }
