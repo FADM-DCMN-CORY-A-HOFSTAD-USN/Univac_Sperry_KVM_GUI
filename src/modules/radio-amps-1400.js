@@ -1,5 +1,6 @@
 import { VstKnob } from '../components/vst-knob.js';
 import { VstSwitch } from '../components/vst-switch.js';
+import { MorseTelegraphKey } from '../components/telegraph-key.js'; // Mount key component
 
 export class RadioAmps1400Panel {
     constructor(containerId, bridgeClient) {
@@ -10,6 +11,49 @@ export class RadioAmps1400Panel {
 
     init() {
         this.container.innerHTML = `
+             <div class="vst-console-frame gray-marine">
+                <div class="vst-console-header line-navy">
+                    <span class="vst-brand-text">ITT MARINE <span class="vst-star">✦</span> ST1400</span>
+                    <span class="vst-model-text">HIGH-POWER RADIO TRANSMITTER & TELEGRAM AMPLIFIER</span>
+                </div>
+
+                <div class="radio-split-workspace">
+                    <div class="radio-rack-column" id="rack-st1400">
+                        <h2>MAIN POWER AMPLIFIER RACK (FAR RIGHT CONSOLE)</h2>
+                        <div class="vst-zone">
+                            <h3>FILAMENT POWER & HIGH VOLTAGE (HV) RELAYS</h3>
+                            <div class="vst-grid"><div class="vst-item" id="rad-tp-1"></div><div class="vst-item" id="rad-tp-2"></div><div class="vst-item" id="rad-tp-3"></div></div>
+                        </div>
+                        <div class="vst-zone">
+                            <h3>FREQUENCY BAND & DRIVE INTERLEAVE SELECT</h3>
+                            <div class="vst-grid"><div class="vst-item" id="rad-tp-4"></div><div class="vst-item" id="rad-tp-5"></div><div class="vst-item" id="rad-tp-6"></div></div>
+                        </div>
+                        <div class="vst-zone">
+                            <h3>TELEGRAM SIGNAL GAIN & ANTENNA COUPLER TUNING</h3>
+                            <div class="vst-grid"><div class="vst-item" id="rad-tp-7"></div><div class="vst-item" id="rad-tp-8"></div></div>
+                        </div>
+                    </div>
+
+                    <div class="radio-rack-column" id="rack-emergency">
+                        <h2>EMERGENCY CONSOLE RACK (CENTER DESK MODULE)</h2>
+                        <div class="vst-zone alert-zone-border">
+                            <h3>EMERGENCY TRANSMITTER STATUS & AUDIO DRIVERS</h3>
+                            <div class="vst-grid"><div class="vst-item" id="rad-tp-9"></div><div class="vst-item" id="rad-tp-10"></div><div class="vst-item" id="rad-tp-11"></div></div>
+                        </div>
+                        <div class="vst-zone">
+                            <h3>EMERGENCY 500 KHZ / ALARM RECEIVER CONTROLS</h3>
+                            <div class="vst-grid"><div class="vst-item" id="rad-tp-12"></div><div class="vst-item" id="rad-tp-13"></div><div class="vst-item" id="rad-tp-14"></div></div>
+                        </div>
+                        <div class="vst-zone">
+                            <h3>AUTO-ALARM TELEGRAPHIC KEYER CONTROLS</h3>
+                            <div class="vst-grid"><div class="vst-item" id="rad-tp-15"></div></div>
+                        </div>
+
+                        <!-- RESERVED AREA FOR THE SKEUOMORPHIC TELEGRAPH KEY INTERFACE -->
+                        <div id="radio-telegraph-key-slot"></div>
+                    </div>
+                </div>
+            </div>
             <div class="vst-console-frame gray-marine">
                 <!-- Transmitter Header Brand Plate -->
                 <div class="vst-console-header line-navy">
@@ -87,6 +131,7 @@ export class RadioAmps1400Panel {
         `;
 
         this.bindRadioTouchPoints();
+        this.mountTelegraphKeyer();
     }
 
     bindRadioTouchPoints() {
@@ -166,6 +211,22 @@ export class RadioAmps1400Panel {
         // TP 15: Automatic Distress Signal Keyer Switch (Sends international 12-dash automated alarm string)
         this.controls['EMERG_AUTO_ALARM'] = new VstSwitch('rad-tp-15', 'AUTO ALARM KEYER', 'STANDBY', 'TRIGGER_DISTRESS', (state) => {
             this.sendRadioCommand('EMERG_AUTO_ALARM_EXEC', state);
+        });
+
+        mountTelegraphKeyer() {
+        this.controls['MORSE_KEYER'] = new MorseTelegraphKey('radio-telegraph-key-slot', (fullString, lastChar) => {
+            console.log(`✉️ Morse buffer incremented: [${lastChar}] -> Total Buffer: "${fullString}"`);
+            
+            // Push decoded stream parameters directly onto your configuration tab console log window in real time
+            window.dispatchEvent(new CustomEvent('radio-telemetry-log', {
+                detail: { param: 'TELEGRAM_BUFFER', value: fullString }
+            }));
+
+            // Dispatch telegram text blocks securely over your Univac connection stream
+            if (this.bridge && typeof this.bridge.sendPayload === 'function') {
+                this.bridge.sendPayload("TELEGRAM_CHAR_STREAM", {
+                    raw_text: fullString,
+                    appended_char: lastChar
         });
     }
 
