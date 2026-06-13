@@ -179,4 +179,101 @@
 .vst-zone.alert-zone-border h3 {
     color: #FF7379;
 }
+/* Telegraph Key Assembly Configurations */
+.telegraph-key-assembly {
+    background-color: #24292E;
+    border: 1px solid #1C2B36;
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 15px;
+    width: 100%;
+}
+
+.telegraph-workspace-grid {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+/* Mechanical Lever Touch Targets Box Assembly Matching Fitts's Law Rules */
+.telegraph-lever-hitbox {
+    width: 80px;
+    height: 90px;
+    background-color: #1A1D20;
+    border-radius: 6px;
+    border: 2px solid #3F4448;
+    position: relative;
+    cursor: pointer;
+    box-shadow: inset 0px 4px 10px rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: center;
+}
+
+.telegraph-arm-bar {
+    width: 12px;
+    height: 55px;
+    background: linear-gradient(to right, #7F8C8D, #BDC3C7, #95A5A6);
+    position: absolute;
+    top: 10px;
+    border-radius: 2px;
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    transform-origin: top center;
+    transition: transform 0.05s ease;
+}
+
+.telegraph-finger-knob {
+    width: 32px;
+    height: 32px;
+    background: radial-gradient(circle, #34495E 0%, #2C3E50 80%, #1A252F 100%);
+    border-radius: 50%;
+    position: absolute;
+    bottom: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.6);
+    border: 1px solid #1A252F;
+}
+
+/* Visually depress lever contact arms dynamically when touch points are closed */
+.telegraph-lever-hitbox.lever-contact-closed .telegraph-arm-bar {
+    transform: scaleY(0.96) translateY(2px);
+    filter: brightness(0.8);
+}
+.telegraph-lever-hitbox.lever-contact-closed .telegraph-finger-knob {
+    transform: translateY(2px);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.9);
+}
+
+/* Readouts Right Panel Deck Canvas Configurations */
+.telegraph-readout-deck {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.morse-symbol-track {
+    font-family: monospace;
+    font-size: 11px;
+    color: #FFD200; /* Stencil Amber tracking symbols characters */
+    background-color: #0F1113;
+    padding: 4px;
+    border-radius: 3px;
+    height: 18px;
+    letter-spacing: 2px;
+}
+
+.telegraph-string-output {
+    height: 32px;
+    background-color: #050A0E;
+    border: 1px solid #4AD2FF;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    color: #4AD2FF; /* High glow fluorescent matrix character display colors */
+    font-weight: bold;
+    padding: 0 8px;
+    outline: none;
+    text-transform: uppercase;
+    box-shadow: inset 0px 2px 5px rgba(0,0,0,0.9);
+}
 
