@@ -1,66 +1,55 @@
 /**
- * Sperry Univac UTS Block-Mode TUI Matrix Renderer
- * Simulates a local hardware screen buffer and fields template.
+ * Sperry Univac UTS Block-Mode TUI Matrix Renderer - Error & Warning Expansion
  */
 export class SperryTuiScreen {
     constructor(containerId, bridgeClient) {
         this.container = document.getElementById(containerId);
         this.bridge = bridgeClient;
 
-        // Screen Dimensions
         this.COLS = 80;
         this.ROWS = 25; // Row 25 (Index 24) is the dedicated Hardware Status Line
 
-        // Local Memory Buffers
-        this.charBuffer = [];  // 2D Array [row][col] storing strings
-        this.attrBuffer = [];  // 2D Array [row][col] storing metadata ('protected', 'input', 'status')
-
-        // Cursor State
+        this.charBuffer = [];  
+        this.attrBuffer = [];  
         this.cursorRow = 0;
         this.cursorCol = 0;
-
-        // Hardware Flag
         this.keyboardLocked = false;
+        
+        // Active alarm flag toggles standard line themes into high-alert states
+        this.systemAlertState = 'NORMAL'; // 'NORMAL' | 'WARN' | 'CRIT'
 
         this.initBuffers();
         this.setupKeyboardHook();
     }
 
-    /**
-     * Initializes blank 80x25 grids for character matrix data and cell properties
-     */
     initBuffers() {
         this.charBuffer = Array.from({ length: this.ROWS }, () => Array(this.COLS).fill(' '));
         this.attrBuffer = Array.from({ length: this.ROWS }, () => Array(this.COLS).fill('protected'));
 
-        // Reserve Row 25 (Index 24) for system hardware reporting 
+        this.writeStatusLine("SYSTEM READY - SPERRY UNIVAC 1100 INTERFACE", 'NORMAL');
+    }
+
+    /**
+     * Refined Status Line Writer with explicit semantic alarm mapping
+     * @param {string} message - Text string to push into row 25
+     * @param {string} alertLevel - 'NORMAL' (Green), 'WARN' (Amber), 'CRIT' (Crimson)
+     */
+    writeStatusLine(message, alertLevel = 'NORMAL') {
+        this.systemAlertState = alertLevel;
+        const cleanMsg = message.toUpperCase().substring(0, 65);
+        const paddedMsg = cleanMsg.padEnd(65, ' ');
+        
+        // Write text characters into row index 24
+        for (let i = 0; i < paddedMsg.length; i++) {
+            this.charBuffer[24][i] = paddedMsg[i];
+        }
+        
+        // Set individual cell color attributes based on the alarm state
+        const attributeTag = `status-${alertLevel.toLowerCase()}`;
         for (let c = 0; c < this.COLS; c++) {
-            this.attrBuffer[24][c] = 'status';
+            this.attrBuffer[24][c] = attributeTag;
         }
-        this.writeStatusLine("SYSTEM READY - SPERRY UNIVAC 1100 INTERFACE");
-    }
-
-    /**
-     * Helper to load template forms onto the local workspace terminal
-     */
-    defineField(row, colStart, text, type = 'protected') {
-        for (let i = 0; i < text.length; i++) {
-            const targetCol = colStart + i;
-            if (targetCol < this.COLS) {
-                this.charBuffer[row][targetCol] = text[i];
-                this.attrBuffer[row][targetCol] = type;
-            }
-        }
-    }
-
-    /**
-     * Renders text to the dedicated 25th row
-     */
-    writeStatusLine(message) {
-        const standardMsg = message.padEnd(65, ' ');
-        for (let i = 0; i < standardMsg.length; i++) {
-            this.charBuffer[24][i] = standardMsg[i];
-        }
+        
         this.updateCoordsOnStatus();
     }
 
@@ -71,9 +60,16 @@ export class SperryTuiScreen {
         }
     }
 
-    /**
-     * Low-latency Virtual DOM Grid Renderer
-     */
+    defineField(row, colStart, text, type = 'protected') {
+        for (let i = 0; i < text.length; i++) {
+            const targetCol = colStart + i;
+            if (targetCol < this.COLS) {
+                this.charBuffer[row][targetCol] = text[i];
+                this.attrBuffer[row][targetCol] = type;
+            }
+        }
+    }
+
     render() {
         let htmlStr = "";
         for (let r = 0; r < this.ROWS; r++) {
@@ -93,36 +89,23 @@ export class SperryTuiScreen {
         this.container.innerHTML = htmlStr;
     }
 
-    /**
-     * Intercepts keystrokes for local execution. Mainframe is blind until XMIT triggers.
-     */
     setupKeyboardHook() {
         window.addEventListener('keydown', (e) => {
-            // Drop input processing if UI layer or navigation tabs took priority
             if (!this.container.closest('.kvm-screen-pane').classList.contains('active')) return;
-            if (this.keyboardLocked) return;
-
-            if (e.key === 'Tab') {
-                e.preventDefault();
-                this.advanceToNextField(e.shiftKey);
-                this.render();
+            
+            // If an unrecovered data link failure occurs, flash the line and refuse inputs
+            if (this.keyboardLocked) {
+                if (e.key === 'Enter' || e.key.length === 1) {
+                    e.preventDefault();
+                    this.flashStatusLineWarning();
+                }
                 return;
             }
 
-            if (e.key === 'Backspace') {
-                e.preventDefault();
-                this.handleBackspace();
-                this.render();
-                return;
-            }
+            if (e.key === 'Tab') { e.preventDefault(); this.advanceToNextField(e.shiftKey); this.render(); return; }
+            if (e.key === 'Backspace') { e.preventDefault(); this.handleBackspace(); this.render(); return; }
+            if (e.key === 'Enter') { e.preventDefault(); this.transmitLocalBuffer(); return; }
 
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.transmitLocalBuffer(); // Mimics physical XMIT button activation
-                return;
-            }
-
-            // Route standard typographic characters into local text array fields
             if (e.key.length === 1) {
                 this.handleCharacterInput(e.key);
                 this.render();
@@ -130,13 +113,22 @@ export class SperryTuiScreen {
         });
     }
 
+    /**
+     * Tactile visual pulse if an operator attempts to type on a locked/broken line
+     */
+    flashStatusLineWarning() {
+        const rowElement = this.container.querySelector('.tui-row:last-child');
+        if (rowElement) {
+            rowElement.classList.add('hardware-flash-alert');
+            setTimeout(() => rowElement.classList.remove('hardware-flash-alert'), 200);
+        }
+    }
+
     handleCharacterInput(char) {
-        // Assert write target falls inside user-writable inputs
         if (this.attrBuffer[this.cursorRow][this.cursorCol] === 'input') {
             this.charBuffer[this.cursorRow][this.cursorCol] = char.toUpperCase();
             this.advanceCursor();
         } else {
-            // Sound warning tone or shift focus automatically to the next input array space
             this.advanceToNextField(false);
             if (this.attrBuffer[this.cursorRow][this.cursorCol] === 'input') {
                 this.charBuffer[this.cursorRow][this.cursorCol] = char.toUpperCase();
@@ -159,9 +151,7 @@ export class SperryTuiScreen {
         if (this.cursorCol >= this.COLS) {
             this.cursorCol = 0;
             this.cursorRow++;
-            if (this.cursorRow >= this.ROWS - 1) { // Stop at Row 24 to preserve Status line
-                this.cursorRow = 0;
-            }
+            if (this.cursorRow >= this.ROWS - 1) this.cursorRow = 0;
         }
     }
 
@@ -170,101 +160,66 @@ export class SperryTuiScreen {
         if (this.cursorCol < 0) {
             this.cursorCol = this.COLS - 1;
             this.cursorRow--;
-            if (this.cursorRow < 0) {
-                this.cursorRow = this.ROWS - 2;
-            }
+            if (this.cursorRow < 0) this.cursorRow = this.ROWS - 2;
         }
     }
 
     advanceToNextField(reverse = false) {
         let iterations = 0;
         const maxSearch = this.COLS * (this.ROWS - 1);
-        
         while (iterations < maxSearch) {
             if (reverse) {
                 this.cursorCol--;
-                if (this.cursorCol < 0) {
-                    this.cursorCol = this.COLS - 1;
-                    this.cursorRow--;
-                    if (this.cursorRow < 0) this.cursorRow = this.ROWS - 2;
-                }
+                if (this.cursorCol < 0) { this.cursorCol = this.COLS - 1; this.cursorRow--; if (this.cursorRow < 0) this.cursorRow = this.ROWS - 2; }
             } else {
                 this.cursorCol++;
-                if (this.cursorCol >= this.COLS) {
-                    this.cursorCol = 0;
-                    this.cursorRow++;
-                    if (this.cursorRow >= this.ROWS - 1) this.cursorRow = 0;
-                }
+                if (this.cursorCol >= this.COLS) { this.cursorCol = 0; this.cursorRow++; if (this.cursorRow >= this.ROWS - 1) this.cursorRow = 0; }
             }
-
             if (this.attrBuffer[this.cursorRow][this.cursorCol] === 'input') {
-                // Pinpoint beginnings of fields
                 const prevCol = this.cursorCol === 0 ? this.COLS - 1 : this.cursorCol - 1;
                 const prevRow = this.cursorCol === 0 ? (this.cursorRow === 0 ? this.ROWS - 2 : this.cursorRow - 1) : this.cursorRow;
-                
-                if (this.attrBuffer[prevRow][prevCol] !== 'input') {
-                    break;
-                }
+                if (this.attrBuffer[prevRow][prevCol] !== 'input') break;
             }
             iterations++;
         }
     }
 
-    /**
-     * XMIT Execution: Gathers unprotected text arrays and pushes them to the backend bridge
-     */
     transmitLocalBuffer() {
         this.keyboardLocked = true;
-        this.writeStatusLine("WAIT - TRANSMITTING BLOCK TO UNIVAC AEGIS BRIDGE...");
+        this.writeStatusLine("WAIT - XMIT IN PROGRESS VIA AEGIS CONSOLE BRIDGE...", 'NORMAL');
         this.render();
 
-        // Extract text only from editable fields
         const payload = [];
         for (let r = 0; r < this.ROWS - 1; r++) {
             let fieldAccumulator = "";
             let fieldStartCol = null;
-
             for (let c = 0; c < this.COLS; c++) {
                 if (this.attrBuffer[r][c] === 'input') {
                     if (fieldStartCol === null) fieldStartCol = c;
                     fieldAccumulator += this.charBuffer[r][c];
                 } else {
                     if (fieldAccumulator !== "") {
-                        payload.push({
-                            row: r,
-                            col: fieldStartCol,
-                            data: fieldAccumulator.trimEnd()
-                        });
-                        fieldAccumulator = "";
-                        fieldStartCol = null;
+                        payload.push({ row: r, col: fieldStartCol, data: fieldAccumulator.trimEnd() });
+                        fieldAccumulator = ""; fieldStartCol = null;
                     }
                 }
             }
-            if (fieldAccumulator !== "") {
-                payload.push({ row: r, col: fieldStartCol, data: fieldAccumulator.trimEnd() });
-            }
+            if (fieldAccumulator !== "") payload.push({ row: r, col: fieldStartCol, data: fieldAccumulator.trimEnd() });
         }
 
-        // Forward payload package directly down your bridge connection
         if (this.bridge && typeof this.bridge.sendBlockModeBurst === 'function') {
             this.bridge.sendBlockModeBurst(payload)
-                .then(response => {
+                .then(() => {
                     this.keyboardLocked = false;
-                    this.writeStatusLine("XMIT COMPLETE - KEYBOARD UNLOCKED");
+                    this.writeStatusLine("XMIT COMPLETE - READY", 'NORMAL');
                     this.render();
                 })
-                .catch(err => {
-                    this.keyboardLocked = false;
-                    this.writeStatusLine("ERROR - TRANSMIT FAILED (CHECK BRIDGE STATUS)");
+                .catch((err) => {
+                    // Frame transmission interrupted or dropped entirely over the line:
+                    this.keyboardLocked = true; // Lock local keyboard array input buffer
+                    this.writeStatusLine("LINE ERR / DEV CHK - TRANSACTION ABORTED. PRESS NEXT TO CYCLE.", 'CRIT');
                     this.render();
                 });
-        } else {
-            // Fallback debugging execution loop if bridge network mock handles are absent
-            setTimeout(() => {
-                this.keyboardLocked = false;
-                this.writeStatusLine("MOCK XMIT COMPLETE - LOCAL BUFFER RESET");
-                this.render();
-            }, 800);
         }
     }
 }
