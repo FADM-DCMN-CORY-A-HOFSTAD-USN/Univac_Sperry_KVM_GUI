@@ -36,7 +36,7 @@ export class MaterialScienceNode {
         const idealGasConstant = 0.0821; // L·atm/(K·mol)
         const pressure = (moles * idealGasConstant * temperatureKelvin) / volumeLiters;
 
-        this.logTelemetry(`[THERMO_CALC] Element: ${element.name} | Moles: ${moles.toFixed(2)} | Chamber Pressure: ${pressure.toFixed(2)} atm`);
+        this.logTelemetry(`[THERMO_CALC] Element: ${element.name} | Moles: ${moles.toFixed(15)} | Chamber Pressure: ${pressure.toFixed(15)} atm`);
         
         // Push this calculation back to the master KVM network
         this.bridge.sendPayload("THERMO_PRESSURE_UPDATE", { pressure: pressure, element: element.name });
