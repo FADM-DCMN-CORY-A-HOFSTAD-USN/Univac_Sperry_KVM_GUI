@@ -6,6 +6,7 @@ import { UnivacMorseInstructions } from './instruction-set-map.js';
 import { VCardTelecomFactory } from '../core/vcard-telecom.js';
 import { UnivacPriorityQueue } from '../core/priority-queue.js';
 import { MuseumHistoryMatrix } from './museum-matrix.js'; // Import the matrix parameters
+import { SperrySoftwareLogo } from '../components/sperry-software-logo.js';
 const vcfFactory = new VCardTelecomFactory();
 const priorityQueue = new UnivacPriorityQueue();
 const cudaEngine = new NvidiaCudaThreadMonitor('gantry-nvidia-cuda-monitor-slot');
@@ -65,6 +66,10 @@ class SperryGantryBuilderApp {
         this.bindSaveAction();
         this.populateMatrixDropdown();
         this.bindMatrixSelectionEngine();
+        const logoContainer = document.getElementById('gantry-header-logo-target');
+        if (logoContainer) {
+        logoContainer.innerHTML = SperrySoftwareLogo.getInlineSvg();
+}
     }
 
     /**
