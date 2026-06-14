@@ -1,7 +1,7 @@
 /**
- * Dorado Mainframe VST Allocation Control Module with Live Status & TPS Counter
- * Designed for Revolutionary-Technology-Company/Univac_Sperry_KVM_GUI
- * Coordinates with Univac-Aegis-bridge to alter MIPS, monitor states, and trace TPS.
+ * Dorado Mainframe VST Firewall Interface Module
+ * Core Integration: Univac-Aegis-bridge (csf_defense_node.py) & ConfigServer-Security-Firewall-CSF
+ * Maps real-time MIPS throttling mechanics to active network defense policies.
  */
 
 export class DoradoVstKnob extends HTMLElement {
@@ -9,6 +9,7 @@ export class DoradoVstKnob extends HTMLElement {
         super();
         this.attachShadow({ mode: 'open' });
         
+        // Match live architecture criteria
         this.minMips = 10;
         this.maxMips = 1200;
         this.currentMips = 10;
@@ -22,7 +23,7 @@ export class DoradoVstKnob extends HTMLElement {
     connectedCallback() {
         this.render();
         this.setupEventListeners();
-        this.startStatusPolling();
+        this.startDefenseNodePolling();
     }
 
     disconnectedCallback() {
@@ -54,7 +55,6 @@ export class DoradoVstKnob extends HTMLElement {
                     letter-spacing: 1px;
                 }
                 
-                /* Telemetry Bay: Combines LEDs and Digital Counter Display */
                 .telemetry-bay {
                     display: flex;
                     justify-content: space-between;
@@ -88,20 +88,20 @@ export class DoradoVstKnob extends HTMLElement {
                     box-shadow: inset 0 1px 1px rgba(0,0,0,0.8);
                     transition: background-color 0.15s ease, box-shadow 0.15s ease;
                 }
+                /* CSF Firewall Protected State Color Matrix */
                 .led-busy.active {
-                    background-color: #00ff66;
+                    background-color: #00ff66; /* Safe / Active Filtering */
                     box-shadow: 0 0 6px #00ff66, inset 0 1px 0px rgba(255,255,255,0.5);
                 }
                 .led-idle.active {
-                    background-color: #0099ff;
-                    box-shadow: 0 0 6px #0099ff, inset 0 1px 0px rgba(255,255,255,0.5);
+                    background-color: #ffaa00; /* Mitigating Threat Burst / Throttled */
+                    box-shadow: 0 0 6px #ffaa00, inset 0 1px 0px rgba(255,255,255,0.5);
                 }
                 .led-fault.active {
-                    background-color: #ff3333;
+                    background-color: #ff3333; /* Node Unreachable / Threat Compromise */
                     box-shadow: 0 0 6px #ff3333, inset 0 1px 0px rgba(255,255,255,0.5);
                 }
 
-                /* TPS Digital Counter Styling */
                 .tps-counter-container {
                     display: flex;
                     flex-direction: column;
@@ -113,7 +113,7 @@ export class DoradoVstKnob extends HTMLElement {
                     border-radius: 2px;
                     padding: 2px 4px;
                     font-size: 11px;
-                    color: #ff9900; /* Amber gas-discharge nixie color styling */
+                    color: #ff9900; 
                     font-weight: bold;
                     letter-spacing: 1px;
                     min-width: 32px;
@@ -170,30 +170,27 @@ export class DoradoVstKnob extends HTMLElement {
                 }
             </style>
             
-            <div class="vst-title">Dorado Control</div>
+            <div class="vst-title">CSF Firewall</div>
             
-            <!-- Telemetry Monitoring Bay -->
             <div class="telemetry-bay">
-                <!-- Status Matrix Indicators -->
                 <div class="led-matrix">
                     <div class="led-container">
                         <div class="led led-busy" id="ledBusy"></div>
-                        <div class="led-label">BSY</div>
+                        <div class="led-label">PASS</div>
                     </div>
                     <div class="led-container">
                         <div class="led led-idle" id="ledIdle"></div>
-                        <div class="led-label">IDL</div>
+                        <div class="led-label">MITG</div>
                     </div>
                     <div class="led-container">
                         <div class="led led-fault" id="ledFault"></div>
-                        <div class="led-label">FLT</div>
+                        <div class="led-label">ERR</div>
                     </div>
                 </div>
 
-                <!-- Digital TPS Tracing Counter Display -->
                 <div class="tps-counter-container">
                     <div class="tps-display" id="tpsVal">0000</div>
-                    <div class="tps-label">TPS Trace</div>
+                    <div class="tps-label">Blocked</div>
                 </div>
             </div>
 
@@ -203,7 +200,7 @@ export class DoradoVstKnob extends HTMLElement {
                 </div>
             </div>
             <div class="vst-display" id="displayVal">0010</div>
-            <div class="vst-unit">OS 2200 ALLOC</div>
+            <div class="vst-unit">MIPS CAPACITY</div>
         `;
     }
 
@@ -242,15 +239,13 @@ export class DoradoVstKnob extends HTMLElement {
         if (calculatedMips !== this.currentMips) {
             this.currentMips = calculatedMips;
             this.updateUi();
-            this.dispatchDmaWrite();
+            this.dispatchCsfPolicyUpdate(); // Sync update thresholds immediately on layout change
         }
     }
 
     stopInteraction() {
         if (this.isDragging) {
             this.isDragging = false;
-            this.commitConfigSync();
-            this.generateAndExportVcf();
         }
     }
 
@@ -266,115 +261,70 @@ export class DoradoVstKnob extends HTMLElement {
     }
 
     /**
-     * Queries the KVM telemetry bridge for execution data metrics
+     * Polls the live python csf_defense_node endpoint to extract telemetry and firewall engine states
      */
-    startStatusPolling() {
+    startDefenseNodePolling() {
         this.pollInterval = setInterval(async () => {
             try {
-                const response = await fetch('http://localhost:8081/api/bridge/status');
-                if (!response.ok) throw new Error('Degradation');
+                // Route targeting the specific network layer node path from Univac-Aegis-bridge
+                const response = await fetch('http://localhost:8081/api/csf/defense/status');
+                if (!response.ok) throw new Error('Node Offline');
                 
                 const data = await response.json();
-                // Parses structure payload. Expects: { state: string, tps: number }
-this.updateLeds(data.state);
-this.updateTpsCounter(data.tps || 0);
+                // Maps variables: data.status ('PASS', 'MITIGATING', 'ERROR') & data.blocked_count
+this.updateStatusLedMatrix(data.status);
+this.updateBlockedCounter(data.blocked_count || 0);
 } catch (err) {
-this.updateLeds('FAULT');
-this.updateTpsCounter(0);
+this.updateStatusLedMatrix('ERROR');
+this.updateBlockedCounter(0);
 }
-}, 350);
-}
-updateLeds(state) {
-const busyLed = this.shadowRoot.getElementById('ledBusy');
-const idleLed = this.shadowRoot.getElementById('ledIdle');
-const faultLed = this.shadowRoot.getElementById('ledFault');
-busyLed.classList.remove('active');
-idleLed.classList.remove('active');
-faultLed.classList.remove('active');
-switch (String(state).toUpperCase()) {
-case 'BUSY':
-busyLed.classList.add('active');
+}, 400);
+} [1]
+updateStatusLedMatrix(status) {
+const passLed = this.shadowRoot.getElementById('ledBusy');
+const mitgLed = this.shadowRoot.getElementById('ledIdle');
+const errLed = this.shadowRoot.getElementById('ledFault');
+passLed.classList.remove('active');
+mitgLed.classList.remove('active');
+errLed.classList.remove('active');
+switch (String(status).toUpperCase()) {
+case 'PASS':
+case 'SECURE':
+passLed.classList.add('active');
 break;
-case 'IDLE':
-idleLed.classList.add('active');
+case 'MITG':
+case 'MITIGATING':
+case 'THROTTLED':
+mitgLed.classList.add('active');
 break;
+case 'ERROR':
+case 'CRITICAL':
 default:
-faultLed.classList.add('active');
+errLed.classList.add('active');
 break;
 }
+} [1]
+updateBlockedCounter(count) {
+const counterDisplay = this.shadowRoot.getElementById('tpsVal');
+const boundedCount = Math.min(9999, Math.max(0, Math.round(count)));
+counterDisplay.textContent = String(boundedCount).padStart(4, '0');
 }
 /**
-* Formats and pushes transaction parameters onto the tracking digital array
-* @param {number} rawTps - Transactions per second metric value
+* Sends the operational constraints directly to the csf_defense_node pipeline
 */
-updateTpsCounter(rawTps) {
-const tpsDisplay = this.shadowRoot.getElementById('tpsVal');
-// Truncate values exceeding the 4-digit mechanical bounds display limit
-const boundedTps = Math.min(9999, Math.max(0, Math.round(rawTps)));
-tpsDisplay.textContent = String(boundedTps).padStart(4, '0');
-}
-async dispatchDmaWrite() {
+async dispatchCsfPolicyUpdate() {
 try {
-await fetch('http://localhost:8081/api/bridge/write', {
+await fetch('http://localhost:8081/api/csf/defense/policy', {
 method: 'POST',
 headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({
-reg: "DORADO_MIPS_REG",
-val: this.currentMips
+origin: "UNIVAC_DORADO_VST",
+allocated_mips: this.currentMips,
+policy_action: this.currentMips < 200 ? "ENFORCE_RATE_LIMIT" : "MONITOR_FLOW"
 })
 });
 } catch (err) {
-console.debug('Bridge DMA sink unreached:', err);
+console.debug('Failed to route policy modification parameters to csf_defense_node:', err);
 }
 }
-async commitConfigSync() {
-this.dispatchEvent(new CustomEvent('dorado-mips-sync', {
-detail: { mips: this.currentMips },
-bubbles: true,
-composed: true
-}));
 }
-async generateAndExportVcf() {
-const paddedMips = String(this.currentMips).padStart(4, '0');
-const timestamp = new Date().toISOString();
-const fileContent = [
-[UNISYS_DORADO_CONFIGURATION_BLOCK],
-TIMESTAMP=${timestamp},
-TARGET_REG=DORADO_MIPS_REG,
-ALLOCATED_MIPS=${paddedMips},
-OPERATOR_ACTION=FIELD_THRESHOLD_ALTERATION,
-INTEGRITY_HASH=${this.calculateSimpleChecksum(paddedMips, timestamp)}
-].join('\n');
-const filename = dorado_alloc_${paddedMips}mips_${Date.now()}.vcf;
-try {
-await fetch('http://localhost:8081/api/bridge/export', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-filename: filename,
-payload: btoa(fileContent)
-})
-});
-} catch (err) {
-console.warn('Local file system injection stream failed. Reverting to sandbox file generation.', err);
-}
-const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
-const element = document.createElement('a');
-element.href = URL.createObjectURL(blob);
-element.download = filename;
-element.style.display = 'none';
-document.body.appendChild(element);
-element.click();
-document.body.removeChild(element);
-}
-calculateSimpleChecksum(mips, time) {
-const combined = ${mips}:${time};
-let hash = 0;
-for (let i = 0; i < combined.length; i++) {
-hash = (hash << 5) - hash + combined.charCodeAt(i);
-hash |= 0;
-}
-return '0x' + Math.abs(hash).toString(16).toUpperCase();
-}
-}
-customElements.define('dorado-vst-knob', DoradoVstKnob);
