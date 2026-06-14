@@ -34,17 +34,21 @@ export class UnivacKvmManager {
         this.bridge = new UnivacBridgeClient();
         this.simulator = null;
         this.trainer = null; // Allocation anchor
-        this.thermoNode = new MaterialScienceNode('viewport-thermo', this.bridge, ptableDataset);
-        this.thermoNode.init();
-
-        // 2. Add it to your KVM Cycle Loop
-        this.modes.push('THERMO');
     }
 
     /**
      * Entry hook: bootstraps components, hooks network states, and maps inputs.
      */
     init() {
+// ... existing network/simulator connections ...
+        
+        // 1. Mount the new node with the Excel data
+        this.thermoNode = new MaterialScienceNode('viewport-thermo', this.bridge, ptableDataset);
+        this.thermoNode.init();
+
+        // 2. Add it to your KVM Cycle Loop
+        this.modes.push('THERMO');
+
         // 1. Establish pipeline connection with the Univac-Aegis-bridge
         this.aiTyper = new AiTyperNode(this);
         this.bridge.connect();
@@ -66,6 +70,13 @@ export class UnivacKvmManager {
             /**
      * Intercept method: Replaces your standard "Save" or "Commit" function
      */
+    handleIncomingTelemetry(envelope) {
+        // Route chemical/fuel sensor data from the mainframe directly into the Periodic Table engine
+        if (envelope.action === "SENSOR_GAS_MIX") {
+             const { element, mass, temp, vol } = envelope.payload;
+             this.thermoNode.calculateChamberPressure(element, mass, temp, vol);
+        }
+        
     bindAiTriggers() {
         const aiBtn = document.getElementById('btn-ai-autopilot');
         const statusFlag = document.getElementById('ai-status-flag');
