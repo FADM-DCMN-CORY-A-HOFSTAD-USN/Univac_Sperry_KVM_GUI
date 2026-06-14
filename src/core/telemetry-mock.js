@@ -18,27 +18,28 @@ export class MainframeTelemetryMock {
         console.log("🎮 Mainframe Telemetry Simulation engine active. Network Test Bench initialized.");
         
         // Simulate continuous downstream register ticks from an online Univac 1100/80
-        this.simulationInterval = setInterval(() => {
-            if (this.networkCondition === 'DEAD') return;
+        // Add this continuous execution block inside your simulation interval loop:
+    setInterval(() => {
+        if (this.networkCondition === 'DEAD') return;
 
-            // Roll for artificial packet drops if the tester selected an unstable network profile
-            if (this.networkCondition === 'UNSTABLE' && Math.random() < this.packetLossRate) {
-                console.warn("📉 SIMULATOR EVENT: Artificial downstream packet drop triggered.");
-                return;
-            }
+        // Simulate flight data drifting variables
+        const mockHeading = (Date.now() / 1000) % 360; 
+        const mockPitch = Math.sin(Date.now() / 5000) * 3.5;
+        const mockRoll = Math.cos(Date.now() / 4000) * 8.2;
+        const mockGyroError = -1.25 + Math.sin(Date.now() / 10000) * 0.5;
 
-            // Fire random active channel ticks to light up the hardware VST panel
-            const randomChannel = Math.random() > 0.5 ? 'Z4_CH0_DEV' : 'Z4_CH1_DEV';
-            const randomState = Math.floor(Math.random() * 6);
-            
-            // Push mock telemetry packet down the message listeners array channel loop
-            this.bridge.onMessageCallbacks.forEach(callback => {
-                callback({
-                    action: "CORE_REG_UPDATE",
-                    payload: { reg: randomChannel, val: randomState }
-                });
+        this.bridge.onMessageCallbacks.forEach(callback => {
+            callback({
+                action: "AVIATION_COMPASS_STREAM",
+                payload: {
+                    heading: mockHeading,
+                    pitch: mockPitch,
+                    roll: mockRoll,
+                    gyro_error: mockGyroError
+                }
             });
-        }, 4000);
+        });
+    }, 1500); // Push updates to the compass display panel every 1.5 seconds
 
         this.hijackBridgeTransmissions();
     }
@@ -73,7 +74,7 @@ export class MainframeTelemetryMock {
      */
     setNetworkProfile(profileName) {
         this.networkCondition = profileName;
-        console.log(`⚠️ Tester changed network condition profile to: [${profileName}]`);
+        console.log(`Tester changed network condition profile to: [${profileName}]`);
 
         switch (profileName) {
             case 'STABLE':

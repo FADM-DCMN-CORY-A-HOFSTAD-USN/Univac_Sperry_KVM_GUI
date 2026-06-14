@@ -8,6 +8,8 @@ import { UnivacPriorityQueue } from '../core/priority-queue.js';
 import { MuseumHistoryMatrix } from './museum-matrix.js'; // Import the matrix parameters
 const vcfFactory = new VCardTelecomFactory();
 const priorityQueue = new UnivacPriorityQueue();
+const cudaEngine = new NvidiaCudaThreadMonitor('gantry-nvidia-cuda-monitor-slot');
+this.priorityQueue.registerCudaMonitor(cudaEngine);
 
 // Connect UI Elements to the priority queue engine modules
 const saveBtn = document.getElementById('kvm-big-red-cycle');

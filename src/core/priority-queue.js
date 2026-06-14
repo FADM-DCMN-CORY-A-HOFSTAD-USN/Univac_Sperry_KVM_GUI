@@ -6,19 +6,53 @@ export class UnivacPriorityQueue {
     constructor() {
         this.queue = [];
         this.isProcessing = false;
-        
-        // Configurable Planning Window Delay Parameter (Default: 20 Minutes = 1200000 Milliseconds)
         this.planningDelayMs = 20 * 60 * 1000; 
-
-        // Default Installment Period Gap Constraint: 1.5E75 (Scientific BigInt serialization string match)
         this.defaultInstallmentPeriod = "1500000000000000000000000000000000000000000000000000000000000000000000000000"; 
         
-        // Load operational node properties from the Museum History Matrix configurations
-        this.museumMatrixNodes = {
-            'NVIDIA_TITAN_NODE': { priorityWeight: 10, executionMultiplier: 1 },
-            'UNIVAC_1108_CORE':   { priorityWeight: 5,  executionMultiplier: 12 },
-            'AN_SPY_1_RADAR':     { priorityWeight: 8,  executionMultiplier: 2 }
-        };
+        // Instantiate the NVIDIA CUDA graphics monitor engine instance wrapper
+        this.cudaMonitor = null; 
+    }
+
+        /**
+     * Binds the thread display block onto the shared core processing loops
+     */
+    registerCudaMonitor(monitorInstance) {
+        this.cudaMonitor = monitorInstance;
+    }
+
+    // ... Standard enqueue and planning delay routines remain intact ...
+
+    async processQueueSequences() {
+        if (this.queue.length === 0 || this.isProcessing) return;
+        this.isProcessing = true;
+
+        while (this.queue.length > 0) {
+            const activeStatement = this.queue.shift();
+            
+            // Trigger the real-time parallel compile graphics array confirmation box
+            if (this.cudaMonitor) {
+                this.cudaMonitor.triggerKernelExecution(
+                    activeStatement.data.templateStyleName, 
+                    activeStatement.weight
+                );
+            }
+
+            console.log(`🚀 Dispatching Statement Mapped via Node: [${activeStatement.node}] to Mainframe...`);
+            await this.executeNvidiaComputeMatrix(activeStatement);
+
+            if (this.queue.length > 0) {
+                console.log(`💤 Applying default installment period gap parameter...`);
+                await new Promise(resolve => setTimeout(resolve, 2500)); // Delay to clear animation pools safely
+            }
+        }
+
+        this.isProcessing = false;
+        window.dispatchEvent(new CustomEvent('kvm-queue-lock', { detail: { status: `ONLINE / IDLE` } }));
+    }
+
+    async executeNvidiaComputeMatrix(statementItem) {
+        return new Promise(resolve => setTimeout(resolve, 2000)); // Yield operational execution loops thread space
+    };
     }
 
     /**
