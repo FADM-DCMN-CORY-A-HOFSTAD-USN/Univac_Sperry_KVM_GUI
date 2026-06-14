@@ -65,4 +65,62 @@ To prevent data collision and ensure predictable planning phases, processing pip
 │
 ▼
 [ OUTPUT TO MAIN COMM RELAYS ]
-* **Marconi 365EZ Base Trigger:** Engaging this mechanical button triggers a mandatory **20-Minute Planning Pause** before processing any queued instructions. * **Inter-Statement Default Period:** Statements are delayed by an installment constraint of **1.5 × 10⁷⁵ cycles** to safe-keep mainframe memory buffers. * **NVIDIA Visual Theme:** To preserve the historic environment design parameters, all parallel monitor grids and PTX compiler terminal outputs are strictly locked to the **1993-2006 legacy corporate color space `rgb(196, 214, 77)`**, displaying the mathematical custom lowercase typewriter `𝘯` script mark. --- ## 4. Sub-Interface Module Directory Index ```text Univac_Sperry_GUI/ ├── assets/ │ ├── css/ │ │ ├── main.css # Global touch resets and button mechanics │ │ ├── tui-mode.css # 80x25 Cathode-Ray P31 green matrix grid styles │ │ ├── gui-mode.css # WinForms blue-orange styling & NVIDIA chartreuse properties │ │ └── panel-mode.css # Skeuomorphic ITT Marine ST1400 dial tracking styles │ └── branding/ │ └── nvidia-logo.svg # 1993 Mathematical Spiral Claw Eye vector logo ├── gantry-builder/ │ ├── index.html # Standalone CMS-free visual instruction block layout manager │ ├── style.css # Sperry-themed layout override style rules │ ├── app.js # Core drag-and-drop controller mapping vCard exports │ └── museum-matrix.js # JavaScript translation of python history arrays └── src/ ├── components/ │ ├── analog-meter.js # Ballistic overshoot spring needle component │ ├── cuda-monitor.js # Real-time parallel thread block matrix grid │ ├── emergency-box.js # Center desk communication frame assembly controller │ └── telegraph-key.js # Interactive Morse sidetone processing engine ├── core/ │ ├── bridge-client.js # Dynamic auto-reconnecting WebSocket connection pipeline │ ├── compaction.js # 6-Bit historical FIELDATA character packer │ ├── kvm-manager.js # Master KVM viewport orchestrator & shortcut link │ └── vcard-telecom.js # RAW multi-column Android .vcf phone book factory └── modules/ └── radio-amps-1400.js # Hardware mapping index for the 15+ console touch points ``` --- ## 5. Quick-Start Deployment Manifest (Standalone Target) ### 5.1 Installation of Components Extract the Gantry 5 core engine package directly into your localized builder runtime repository environment: ```bash git clone https://github.com cd Univac_Sperry_GUI ``` ### 5.2 Server Initialization (Without CMS Dependencies) Spin up the local thin HTTP engine layer using python's basic server utilities to safely run `localStorage` operations and file blob transfers: ```bash python3 -m http.server 8080 ``` Open **`HTTP://localhost:8080/gantry-builder/index.html`** on your touch-screen terminal or tablet device. ### 5.3 Technical Verification Testing 1. Drag the desired Univac instruction blocks (`L`, `A`, `ST`, `HALT`) from the left tabular drawer into the Gantry canvas grid. 2. Select your targeted physical machine module node from the **Museum History Matrix** option dropdown menu. 3. Tap **SAVE AS NEW (.VCF)**. The interface will compile your statement stack, update local cache configurations, and trigger an automated download of the phone book transaction file (`.vcf`), while automatically enqueuing the commands into the high-priority NVIDIA queue processor.
+*   **Marconi 365EZ Base Trigger:** Engaging this mechanical button triggers a mandatory **20-Minute Planning Pause** before processing any queued instructions.
+*   **Inter-Statement Default Period:** Statements are delayed by an installment constraint of **1.5 × 10⁷⁵ cycles** to safe-keep mainframe memory buffers.
+*   **NVIDIA Visual Theme:** To preserve the historic environment design parameters, all parallel monitor grids and PTX compiler terminal outputs are strictly locked to the **1993-2006 legacy corporate color space `rgb(196, 214, 77)`**, displaying the mathematical custom lowercase typewriter `𝘯` script mark.
+
+---
+
+## 4. Sub-Interface Module Directory Index
+```text
+Univac_Sperry_GUI/
+├── assets/
+│   ├── css/
+│   │   ├── main.css          # Global touch resets and button mechanics
+│   │   ├── tui-mode.css      # 80x25 Cathode-Ray P31 green matrix grid styles
+│   │   ├── gui-mode.css      # WinForms blue-orange styling & NVIDIA chartreuse properties
+│   │   └── panel-mode.css    # Skeuomorphic ITT Marine ST1400 dial tracking styles
+│   └── branding/
+│       └── nvidia-logo.svg   # 1993 Mathematical Spiral Claw Eye vector logo
+├── gantry-builder/
+│   ├── index.html            # Standalone CMS-free visual instruction block layout manager
+│   ├── style.css             # Sperry-themed layout override style rules
+│   ├── app.js                # Core drag-and-drop controller mapping vCard exports
+│   └── museum-matrix.js      # JavaScript translation of python history arrays
+└── src/
+    ├── components/
+    │   ├── analog-meter.js   # Ballistic overshoot spring needle component
+    │   ├── cuda-monitor.js   # Real-time parallel thread block matrix grid
+    │   ├── emergency-box.js  # Center desk communication frame assembly controller
+    │   └── telegraph-key.js  # Interactive Morse sidetone processing engine
+    ├── core/
+    │   ├── bridge-client.js  # Dynamic auto-reconnecting WebSocket connection pipeline
+    │   ├── compaction.js     # 6-Bit historical FIELDATA character packer
+    │   ├── kvm-manager.js    # Master KVM viewport orchestrator & shortcut link
+    │   └── vcard-telecom.js  # RAW multi-column Android .vcf phone book factory
+    └── modules/
+        └── radio-amps-1400.js # Hardware mapping index for the 15+ console touch points
+```
+
+---
+
+## 5. Quick-Start Deployment Manifest (Standalone Target)
+
+### 5.1 Installation of Components
+Extract the Gantry 5 core engine package directly into your localized builder runtime repository environment:
+```bash
+git clone https://github.com
+cd Univac_Sperry_GUI
+```
+
+### 5.2 Server Initialization (Without CMS Dependencies)
+Spin up the local thin HTTP engine layer using python's basic server utilities to safely run `localStorage` operations and file blob transfers:
+```bash
+python3 -m http.server 8080
+```
+Open **`HTTP://localhost:8080/gantry-builder/index.html`** on your touch-screen terminal or tablet device.
+
+### 5.3 Technical Verification Testing
+1. Drag the desired Univac instruction blocks (`L`, `A`, `ST`, `HALT`) from the left tabular drawer into the Gantry canvas grid.
+2. Select your targeted physical machine module node from the **Museum History Matrix** option dropdown menu.
+3. Tap **SAVE AS NEW (.VCF)**. The interface will compile your statement stack, update local cache configurations, and trigger an automated download of the phone book transaction file (`.vcf`), while automatically enqueuing the commands into the high-priority NVIDIA queue processor.
