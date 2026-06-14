@@ -11,6 +11,7 @@ import { Scr610TransceiverPanel } from '../modules/scr610-transceiver.js'; // Mo
 import { UnivacBridgeClient } from './bridge-client.js'; 
 import { MainframeTelemetryMock } from './telemetry-mock.js';
 import { AutomatedTrainingBot } from './training-bot.js'; // Import training file
+import { UnivacSimplificationEngine } from './simplification-engine.js'; // Import the new engine
 
 export class UnivacKvmManager {
     constructor() {
@@ -20,6 +21,7 @@ export class UnivacKvmManager {
 
         // Sub-interface controller allocations
         this.tuiScreen = null;
+        this.simplifier = null;
         this.configGui = null;
         this.hardwarePanel = null;
         
@@ -38,6 +40,7 @@ export class UnivacKvmManager {
 
         // 2. Instantiate and mount UI engines into their respective container nodes
         this.tuiScreen = new SperryTuiScreen('tui-matrix-container', this.bridge);
+        this.simplifier = new UnivacSimplificationEngine(this.tuiScreen, window.Gantry);
         this.configGui = new SperryConfigGuiPanel('viewport-gui', this.bridge);
         this.hardwarePanel = new System110080Panel('viewport-panel', this.bridge);
 
@@ -49,6 +52,18 @@ export class UnivacKvmManager {
             if (this.configGui) {
                 this.configGui.appendTelemetryLog("RADIO_ROOM", `Transmitter array write operation: [${e.detail.param}] configured to value index state [${e.detail.value}]`);
             }
+            /**
+     * Intercept method: Replaces your standard "Save" or "Commit" function
+     */
+    commitFileToStorage(filename, rawCodeContent) {
+        // FORCE simplification before anything goes to storage
+        const optimizedContent = this.simplifier.processAndSimplify(rawCodeContent, filename);
+
+        // Now save the ultra-fast, simplified equivalent
+        localStorage.setItem(`UNIVAC_FS_${filename}`, optimizedContent);
+        
+        console.log(`Successfully compacted and saved: ${filename}`);
+    }
         });
 
         this.bindNavigationTargets();
