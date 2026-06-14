@@ -6,6 +6,7 @@ import { SperryTuiScreen } from '../components/tui-screen.js';
 import { SperryConfigGuiPanel } from '../modules/config-panel.js';
 import { RadioAmps1400Panel } from '../modules/radio-amps-1400.js'; 
 import { System110080Panel } from '../modules/system-1100-80.js';
+import { Scr610TransceiverPanel } from '../modules/scr610-transceiver.js'; // Mount SCR-610 Module
 import { UnivacBridgeClient } from './bridge-client.js'; 
 import { MainframeTelemetryMock } from './telemetry-mock.js';
 
