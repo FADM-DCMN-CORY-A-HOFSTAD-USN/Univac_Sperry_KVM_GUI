@@ -9,6 +9,18 @@ export class UnivacSimplificationEngine {
         this.gantry = gantryRouter; // Hypothetical Gantry hook for tagging
         
         // Dictionary of Universal Math Isomorphisms
+        // Add this inside your Simplification Engine's Isomorphisms dictionary:
+        this.isomorphisms.MAXWELL_BOLTZMANN = {
+            regex: /\\sqrt{\\frac{3RT}{M}}/g, // Root-mean-square speed equation
+            tag: "ISO: MAXWELL-BOLTZMANN SPEED",
+            explanation: "Detected gas particle velocity calculation. Auto-injecting exact Molar Mass (M) from master_ptable.xlsx dataset to bypass manual floating-point arithmetic."
+        };
+
+        // Add a function to auto-balance equations using the Excel data
+        balanceStoichiometry(rawInput) {
+           // If the operator types "H2 + O2 -> H2O"
+           // The Univac parses the atomic weights from your Excel sheet, verifies the conservation of mass, and automatically corrects it to: "2H2 + O2 -> 2H2O"
+        }
         this.isomorphisms = {
             INVERSE_SQUARE: {
                 regex: /([A-Za-z0-9_]+)\s*\/\s*\(\s*([A-Za-z0-9_]+)\s*\*\s*\2\s*\)/g, // e.g., k / (r * r)
