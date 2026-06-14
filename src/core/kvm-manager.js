@@ -12,10 +12,12 @@ import { UnivacBridgeClient } from './bridge-client.js';
 import { MainframeTelemetryMock } from './telemetry-mock.js';
 import { AutomatedTrainingBot } from './training-bot.js'; // Import training file
 import { UnivacSimplificationEngine } from './simplification-engine.js'; // Import the new engine
+import { AiTyperNode } from './ai-typer-node.js'; // Import the new AI module
 
 export class UnivacKvmManager {
     constructor() {
         // Strict ordered sequential loop for one-way input navigation
+        this.aiTyper = null; // Allocation anchor
         this.modes = ['TUI', 'GUI', 'PANEL'];
         this.currentModeIndex = 0;
 
@@ -36,6 +38,7 @@ export class UnivacKvmManager {
      */
     init() {
         // 1. Establish pipeline connection with the Univac-Aegis-bridge
+        this.aiTyper = new AiTyperNode(this);
         this.bridge.connect();
 
         // 2. Instantiate and mount UI engines into their respective container nodes
@@ -55,6 +58,33 @@ export class UnivacKvmManager {
             /**
      * Intercept method: Replaces your standard "Save" or "Commit" function
      */
+    bindAiTriggers() {
+        const aiBtn = document.getElementById('btn-ai-autopilot');
+        const statusFlag = document.getElementById('ai-status-flag');
+        
+        if (aiBtn) {
+            aiBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const isActive = !this.aiTyper.isActive;
+                this.aiTyper.toggleAutopilot(isActive);
+                
+                // Update UI Visuals
+                if (isActive) {
+                    aiBtn.style.background = "linear-gradient(to bottom, #76B900, #4A7A00)"; // NVIDIA Green
+                    aiBtn.style.color = "#FFF";
+                    aiBtn.textContent = "STOP AI NODE";
+                    if (statusFlag) {
+                        statusFlag.textContent = "AI RUNNING CIVILIZATION";
+                        statusFlag.style.color = "#76B900";
+                    }
+                } else {
+                    aiBtn.style.background = ""; // Reset
+                    aiBtn.style.color = "";
+                    aiBtn.textContent = "ENABLE AI TYPER";
+                    if (statusFlag) {
+                        statusFlag.textContent = "AI OFFLINE";
+                        statusFlag.style.color = "#888";
+                    }
     commitFileToStorage(filename, rawCodeContent) {
         // FORCE simplification before anything goes to storage
         const optimizedContent = this.simplifier.processAndSimplify(rawCodeContent, filename);
