@@ -2,6 +2,7 @@
  * Isolated Standalone Gantry Layout & Morse Macro State Compiler Engine.
  * Saves configuration templates directly to a localized JSON file context.
  */
+import { MetaNodeFactory } from '../src/core/meta-node-factory.js';
 import { UnivacMorseInstructions } from './instruction-set-map.js';
 import { VCardTelecomFactory } from '../core/vcard-telecom.js';
 import { UnivacPriorityQueue } from '../core/priority-queue.js';
@@ -11,9 +12,23 @@ const vcfFactory = new VCardTelecomFactory();
 const priorityQueue = new UnivacPriorityQueue();
 const cudaEngine = new NvidiaCudaThreadMonitor('gantry-nvidia-cuda-monitor-slot');
 this.priorityQueue.registerCudaMonitor(cudaEngine);
-
+this.metaFactory = new MetaNodeFactory(this);
 // Connect UI Elements to the priority queue engine modules
 const saveBtn = document.getElementById('kvm-big-red-cycle');
+const chkEvolve = document.getElementById('chk-toggle-evolution');
+const chkDisk = document.getElementById('chk-toggle-disk-saver');
+
+if (chkEvolve) {
+    chkEvolve.addEventListener('change', (e) => {
+        this.metaFactory.toggleEvolutionaryMatrix(e.target.checked);
+    });
+}
+
+if (chkDisk) {
+    chkDisk.addEventListener('change', (e) => {
+        this.metaFactory.toggleDiskSaver(e.target.checked);
+    });
+}
 saveBtn.addEventListener('click', () => {
     // Generate the raw Gantry template layout dictionary parameters...
     const templateConfigPayload = {
@@ -65,6 +80,8 @@ class SperryGantryBuilderApp {
         this.setupDragAndDropListeners();
         this.bindSaveAction();
         this.populateMatrixDropdown();
+        // Ensure the dropdown includes both static and dynamically evolved node keys on initial render
+        this.metaFactory.refreshInterfaceDropdowns();
         this.bindMatrixSelectionEngine();
         const logoContainer = document.getElementById('gantry-header-logo-target');
         if (logoContainer) {
