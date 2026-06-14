@@ -13,6 +13,9 @@ import { MainframeTelemetryMock } from './telemetry-mock.js';
 import { AutomatedTrainingBot } from './training-bot.js'; // Import training file
 import { UnivacSimplificationEngine } from './simplification-engine.js'; // Import the new engine
 import { AiTyperNode } from './ai-typer-node.js'; // Import the new AI module
+import { MaterialScienceNode } from '../modules/material-node.js';
+// Fetch or import your converted Excel data here
+import ptableDataset from '../data/ptable.json' assert { type: 'json' };
 
 export class UnivacKvmManager {
     constructor() {
@@ -31,6 +34,11 @@ export class UnivacKvmManager {
         this.bridge = new UnivacBridgeClient();
         this.simulator = null;
         this.trainer = null; // Allocation anchor
+        this.thermoNode = new MaterialScienceNode('viewport-thermo', this.bridge, ptableDataset);
+        this.thermoNode.init();
+
+        // 2. Add it to your KVM Cycle Loop
+        this.modes.push('THERMO');
     }
 
     /**
