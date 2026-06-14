@@ -4,11 +4,13 @@
  */
 import { SperryTuiScreen } from '../components/tui-screen.js';
 import { SperryConfigGuiPanel } from '../modules/config-panel.js';
-import { RadioAmps1400Panel } from '../modules/radio-amps-1400.js'; 
+import { Scr610TransceiverPanel } from '../modules/scr610-transceiver.js';
+import { RadioAmps1400Panel } from '../modules/radio-amps-1400.js'; // Mount Radio Amps Panel
 import { System110080Panel } from '../modules/system-1100-80.js';
 import { Scr610TransceiverPanel } from '../modules/scr610-transceiver.js'; // Mount SCR-610 Module
 import { UnivacBridgeClient } from './bridge-client.js'; 
 import { MainframeTelemetryMock } from './telemetry-mock.js';
+import { AutomatedTrainingBot } from './training-bot.js'; // Import training file
 
 export class UnivacKvmManager {
     constructor() {
@@ -23,7 +25,8 @@ export class UnivacKvmManager {
         
         // Network pipeline links
         this.bridge = new UnivacBridgeClient();
-        this.simulator = null; 
+        this.simulator = null;
+        this.trainer = null; // Allocation anchor
     }
 
     /**
@@ -62,7 +65,7 @@ export class UnivacKvmManager {
                     this.tuiScreen.writeStatusLine("SYSTEM READY - SPERRY UNIVAC 1100 INTERFACE", 'NORMAL');
                     break;
                 case 'CONNECTING...':
-                    this.tuiScreen.keyboardLocked = true; 
+                    this.tuiScreen.keyboardLocked = true;
                     this.tuiScreen.writeStatusLine("RETRY / WAIT - ACQUIRING LINK ROUTE TO BRIDGE NETWORK...", 'WARN');
                     break;
                 case 'OFFLINE - RETRYING':
@@ -76,7 +79,7 @@ export class UnivacKvmManager {
         // 4. Initialize and boot the error simulation test bench for standalone testing
         this.simulator = new MainframeTelemetryMock(this.bridge, this.tuiScreen);
         this.simulator.start();
-
+        this.trainer = new AutomatedTrainingBot(this);
         // 5. Populate initial baseline form templates onto the screen grid buffer
         this.tuiScreen.defineField(2, 5, "SPERRY UNIVAC 1100/80 MAIN KVM BRIDGE CONSOLE");
         this.tuiScreen.defineField(4, 5, "INPUT ADDRESS NODE:  ");
@@ -86,6 +89,7 @@ export class UnivacKvmManager {
         // 6. Register touch interactions, dashboard triggers, and system keyboard macros
         this.bindNavigationTargets();
         this.bindSimulationButtons();
+        this.bindTrainingTriggers(); // Bind automated runner buttons
         this.registerKeyboardShortcuts();
         
         // Synchronize display layout frames to initial default (TUI Mode)
@@ -114,7 +118,20 @@ export class UnivacKvmManager {
         if (bigRedBtn) {
             bigRedBtn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
+                
                 this.cycleNextInput();
+            }, { passive: false });
+        const runBtn = document.getElementById('btn-trigger-auto-typer');
+        if (runBtn) {
+            runBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.trainer.startSelfGuidedTrainingLoop();
+            });
+            
+            // Touch screen interface bypasses
+            runBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.trainer.startSelfGuidedTrainingLoop();
             }, { passive: false });
             
             // Desktop mouse fallback execution environment click binding
@@ -128,6 +145,19 @@ export class UnivacKvmManager {
     /**
      * Binds the local testing dashboard overlays to inject network faults on demand.
      */
+    bindNavigationTargets() {
+        document.querySelectorAll('.touch-tab').forEach(tab => {
+            tab.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.currentModeIndex = this.modes.indexOf(tab.getAttribute('data-mode'));
+                this.updateViewportState();
+            }, { passive: false });
+        });
+
+        const bigRedBtn = document.getElementById('kvm-big-red-cycle');
+        if (bigRedBtn) {
+            bigRedBtn.addEventListener('click', (e) => { e.preventDefault(); this.cycleNextInput(); });
+            
     bindSimulationButtons() {
         const btnStable = document.getElementById('bench-stable');
         const btnUnstable = document.getElementById('bench-unstable');
@@ -195,11 +225,11 @@ export class UnivacKvmManager {
 
         // Maintain highlighted states across the top navigation tab ribbons
         document.querySelectorAll('.touch-tab').forEach(tab => {
-            if (tab.getAttribute('data-mode') === activeMode) {
-                tab.classList.add('active');
-            } else {
-                tab.classList.remove('active');
-            }
+            tab.classList.toggle('active', tab.getAttribute('data-mode') === activeMode);
+        });
+
+        if (activeMode === 'TUI' && this.tuiScreen) this.tuiScreen.render();
+    }
         });
 
         // Trigger individual UI canvas repaints if a terminal window takes focus
