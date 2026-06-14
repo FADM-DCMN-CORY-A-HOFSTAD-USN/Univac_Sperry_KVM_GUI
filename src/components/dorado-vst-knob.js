@@ -1,7 +1,7 @@
 /**
- * Dorado Mainframe VST Allocation Control Module
+ * Dorado Mainframe VST Allocation Control Module with Live Status Monitoring
  * Designed for Revolutionary-Technology-Company/Univac_Sperry_KVM_GUI
- * Coordinates with Univac-Aegis-bridge to alter Dorado instruction blocks.
+ * Coordinates with Univac-Aegis-bridge to alter MIPS and monitor real-time transaction states.
  */
 
 export class DoradoVstKnob extends HTMLElement {
@@ -9,18 +9,29 @@ export class DoradoVstKnob extends HTMLElement {
         super();
         this.attachShadow({ mode: 'open' });
         
-        // Default Config mimicking Unisys Dorado Metered Pay-For-Use parameters
+        // Configuration parameters
         this.minMips = 10;
         this.maxMips = 1200;
         this.currentMips = 10;
         this.isDragging = false;
         this.startY = 0;
         this.startMips = 10;
+        
+        // Real-time polling reference
+        this.pollInterval = null;
     }
 
     connectedCallback() {
         this.render();
         this.setupEventListeners();
+        this.startStatusPolling();
+    }
+
+    disconnectedCallback() {
+        // Prevent memory leaks when the component unmounts from the GUI canvas
+        if (this.pollInterval) {
+            clearInterval(this.pollInterval);
+        }
     }
 
     render() {
@@ -42,9 +53,50 @@ export class DoradoVstKnob extends HTMLElement {
                     font-size: 10px;
                     color: #aaa;
                     text-transform: uppercase;
-                    margin-bottom: 10px;
+                    margin-bottom: 12px;
                     letter-spacing: 1px;
                 }
+                
+                /* LED Array Layout */
+                .led-matrix {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 15px;
+                    padding: 0 5px;
+                }
+                .led-container {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 4px;
+                }
+                .led-label {
+                    font-size: 8px;
+                    color: #888;
+                }
+                .led {
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background-color: #222;
+                    box-shadow: inset 0 1px 1px rgba(0,0,0,0.8);
+                    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+                }
+                
+                /* Specific LED Color States when activated */
+                .led-busy.active {
+                    background-color: #00ff66;
+                    box-shadow: 0 0 8px #00ff66, inset 0 1px 0px rgba(255,255,255,0.5);
+                }
+                .led-idle.active {
+                    background-color: #0099ff;
+                    box-shadow: 0 0 8px #0099ff, inset 0 1px 0px rgba(255,255,255,0.5);
+                }
+                .led-fault.active {
+                    background-color: #ff3333;
+                    box-shadow: 0 0 8px #ff3333, inset 0 1px 0px rgba(255,255,255,0.5);
+                }
+
                 .knob-container {
                     position: relative;
                     width: 80px;
@@ -59,7 +111,7 @@ export class DoradoVstKnob extends HTMLElement {
                     background: radial-gradient(circle, #333 40%, #222 70%);
                     border: 4px solid #444;
                     position: relative;
-                    transform: rotate(0deg);
+                    transform: rotate(-135deg);
                     transition: transform 0.05s linear;
                 }
                 .knob-marker {
@@ -88,7 +140,25 @@ export class DoradoVstKnob extends HTMLElement {
                     margin-top: 2px;
                 }
             </style>
-            <div class="vst-title">Dorado MIPS</div>
+            
+            <div class="vst-title">Dorado Control</div>
+            
+            <!-- Read-Only Telemetry Monitor Matrix -->
+            <div class="led-matrix">
+                <div class="led-container">
+                    <div class="led led-busy" id="ledBusy"></div>
+                    <div class="led-label">BUSY</div>
+                </div>
+                <div class="led-container">
+                    <div class="led led-idle" id="ledIdle"></div>
+                    <div class="led-label">IDLE</div>
+                </div>
+                <div class="led-container">
+                    <div class="led led-fault" id="ledFault"></div>
+                    <div class="led-label">FLT</div>
+                </div>
+            </div>
+
             <div class="knob-container" id="knobContainer">
                 <div class="knob-dial" id="knobDial">
                     <div class="knob-marker"></div>
@@ -102,17 +172,16 @@ export class DoradoVstKnob extends HTMLElement {
     setupEventListeners() {
         const container = this.shadowRoot.getElementById('knobContainer');
         
-        // Touch and Mouse tracking for relative horizontal/vertical sliding
         container.addEventListener('mousedown', (e) => this.startInteraction(e.clientY));
         window.addEventListener('mousemove', (e) => this.handleInteraction(e.clientY));
         window.addEventListener('mouseup', () => this.stopInteraction());
 
         container.addEventListener('touchstart', (e) => {
-            this.startInteraction(e.touches[0].clientY);
+            this.startInteraction(e.touches.clientY);
             e.preventDefault();
         }, { passive: false });
         window.addEventListener('touchmove', (e) => {
-            this.handleInteraction(e.touches[0].clientY);
+            this.handleInteraction(e.touches.clientY);
         }, { passive: false });
         window.addEventListener('touchend', () => this.stopInteraction());
     }
@@ -126,12 +195,10 @@ export class DoradoVstKnob extends HTMLElement {
     handleInteraction(clientY) {
         if (!this.isDragging) return;
 
-        // Calculate delta: drag up to increase capacity, down to throttle
         const deltaY = this.startY - clientY;
-        const sensitivity = 2.5; // Change rate scaling
+        const sensitivity = 2.5;
         let calculatedMips = Math.round(this.startMips + (deltaY * sensitivity));
 
-        // Constrain bounds to valid processing ranges
         calculatedMips = Math.max(this.minMips, Math.min(this.maxMips, calculatedMips));
         
         if (calculatedMips !== this.currentMips) {
@@ -152,7 +219,6 @@ export class DoradoVstKnob extends HTMLElement {
         const dial = this.shadowRoot.getElementById('knobDial');
         const display = this.shadowRoot.getElementById('displayVal');
 
-        // Map MIPS values linearly to a classic VST rotational envelope (-135 to +135 deg)
         const percent = (this.currentMips - this.minMips) / (this.maxMips - this.minMips);
         const rotation = (percent * 270) - 135;
         
@@ -161,35 +227,78 @@ export class DoradoVstKnob extends HTMLElement {
     }
 
     /**
-     * Dispatches Direct Memory Access write updates straight to the local bridge API
+     * Periodically queries the KVM telemetry bridge for transaction execution metrics
      */
-    async dispatchDmaWrite() {
-        try {
-            await fetch('http://localhost:8081/api/bridge/write', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    reg: "DORADO_MIPS_REG",
-                    val: this.currentMips
-                })
-            });
-        } catch (err) {
-            // Silently buffer networking errors inside the KVM runtime context
-            console.debug('Bridge DMA sink unreached:', err);
-        }
+    startStatusPolling() {
+        // Poll every 350ms to match high-frequency mainframe bus monitoring
+        this.pollInterval = setInterval(async () => {
+            try {
+                const response = await fetch('http://localhost:8081/api/bridge/status');
+                if (!response.ok) throw new Error('Bridge degradation detected');
+                
+                const data = await response.json();
+                this.updateLeds(data.state); // Expects payload structure: { state: 'BUSY' | 'IDLE' | 'FAULT' }
+            } catch (err) {
+                // If communication with the local bridge fails, drop to Fault mode
+                this.updateLeds('FAULT');
+            }
+        }, 350);
     }
 
     /**
-     * Commits final configurations into the localized telecom data stream pipelines
+     * Evaluates backend processing parameters and updates visual indicators
+     * @param {string} state - The system processing token
      */
-    async commitConfigSync() {
-        // Dispatches global framework notification for custom storage synchronization
-        this.dispatchEvent(new CustomEvent('dorado-mips-sync', {
-            detail: { mips: this.currentMips },
-            bubbles: true,
-            composed: true
-        }));
-    }
-}
+    updateLeds(state) {
+        const busyLed = this.shadowRoot.getElementById('ledBusy');
+        const idleLed = this.shadowRoot.getElementById('ledIdle');
+        const faultLed = this.shadowRoot.getElementById('ledFault');
 
+        // Reset tracking visibility
+        busyLed.classList.remove('active');
+        idleLed.classList.remove('active');
+        faultLed.classList.remove('active');
+
+        // Evaluate raw token state
+        switch (String(state).toUpperCase()) {
+            case 'BUSY':
+            case 'PROCESSING':
+            case 'TRANSACTING':
+                busyLed.classList.add('active');
+                break;
+            case 'IDLE':
+            case 'WAITING':
+            case 'STABLE':
+                idleLed.classList.add('active');
+                break;
+            case 'FAULT':
+            case 'ERROR':
+            case 'TIMEOUT':
+            default:
+                faultLed.classList.add('active');
+                break;
+}
+}
+async dispatchDmaWrite() {
+try {
+await fetch('http://localhost:8081/api/bridge/write', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+reg: "DORADO_MIPS_REG",
+val: this.currentMips
+})
+});
+} catch (err) {
+console.debug('Bridge DMA sink unreached:', err);
+}
+}
+async commitConfigSync() {
+this.dispatchEvent(new CustomEvent('dorado-mips-sync', {
+detail: { mips: this.currentMips },
+bubbles: true,
+composed: true
+}));
+}
+}
 customElements.define('dorado-vst-knob', DoradoVstKnob);
