@@ -120,20 +120,24 @@ export class SperryConfigGuiPanel {
      * @param {number} roll - Airframe banking angle rotation
      * @param {number} gyroError - Calculation delta tracking offset values
      */
-    updateCompassTelemetryTrack(heading, pitch, roll, gyroError) {
+updateCompassTelemetryTrack(heading, pitch, roll, gyroError) {
         // 1. Refresh explicit WinForms display elements text content
         const lblHdg = document.getElementById('nav-lbl-hdg');
         const lblPitch = document.getElementById('nav-lbl-pitch');
         const lblRoll = document.getElementById('nav-lbl-roll');
         const lblGyro = document.getElementById('nav-lbl-gyro');
 
-        if (lblHdg) lblHdg.textContent = `${String(Math.round(heading)).padStart(3, '0')}°`;
-        if (lblPitch) lblPitch.textContent = `${pitch.toFixed(1)}°`;
-        if (lblRoll) lblRoll.textContent = `${roll.toFixed(1)}°`;
-        if (lblGyro) lblGyro.textContent = `${gyroError >= 0 ? '+' : ''}${gyroError.toFixed(2)}°`;
+        // Note: For heading, if you still want the integer part padded to 3 digits (e.g., "045.123..."), 
+        // we can check if it's less than 100/10 and pad it before attaching the 15 decimals.
+        let hdgPad = heading < 10 ? '00' : (heading < 100 ? '0' : '');
+
+        if (lblHdg) lblHdg.textContent = `${hdgPad}${heading.toFixed(15)}°`;
+        if (lblPitch) lblPitch.textContent = `${pitch.toFixed(15)}°`;
+        if (lblRoll) lblRoll.textContent = `${roll.toFixed(15)}°`;
+        if (lblGyro) lblGyro.textContent = `${gyroError >= 0 ? '+' : ''}${gyroError.toFixed(15)}°`;
 
         // 2. Format a raw telemetry string entry and write it into the main scroller
-        const telemetryPayloadString = `NAV_TRACK: HDG=${heading.toFixed(1)} P=${pitch.toFixed(1)} R=${roll.toFixed(1)} | GYRO_OFFSET=${gyroError.toFixed(2)}`;
+        const telemetryPayloadString = `NAV_TRACK: HDG=${heading.toFixed(15)} P=${pitch.toFixed(15)} R=${roll.toFixed(15)} | GYRO_OFFSET=${gyroError.toFixed(15)}`;
         this.appendTelemetryLog("AVIATION_CORE", telemetryPayloadString);
     }
 

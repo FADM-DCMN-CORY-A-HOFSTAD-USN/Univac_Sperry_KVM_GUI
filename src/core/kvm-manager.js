@@ -11,15 +11,22 @@ import { Scr610TransceiverPanel } from '../modules/scr610-transceiver.js'; // Mo
 import { UnivacBridgeClient } from './bridge-client.js'; 
 import { MainframeTelemetryMock } from './telemetry-mock.js';
 import { AutomatedTrainingBot } from './training-bot.js'; // Import training file
+import { UnivacSimplificationEngine } from './simplification-engine.js'; // Import the new engine
+import { AiTyperNode } from './ai-typer-node.js'; // Import the new AI module
+import { MaterialScienceNode } from '../modules/material-node.js';
+// Fetch or import your converted Excel data here
+import ptableDataset from '../data/ptable.json' assert { type: 'json' };
 
 export class UnivacKvmManager {
     constructor() {
         // Strict ordered sequential loop for one-way input navigation
+        this.aiTyper = null; // Allocation anchor
         this.modes = ['TUI', 'GUI', 'PANEL'];
         this.currentModeIndex = 0;
 
         // Sub-interface controller allocations
         this.tuiScreen = null;
+        this.simplifier = null;
         this.configGui = null;
         this.hardwarePanel = null;
         
@@ -33,11 +40,22 @@ export class UnivacKvmManager {
      * Entry hook: bootstraps components, hooks network states, and maps inputs.
      */
     init() {
+// ... existing network/simulator connections ...
+        
+        // 1. Mount the new node with the Excel data
+        this.thermoNode = new MaterialScienceNode('viewport-thermo', this.bridge, ptableDataset);
+        this.thermoNode.init();
+
+        // 2. Add it to your KVM Cycle Loop
+        this.modes.push('THERMO');
+
         // 1. Establish pipeline connection with the Univac-Aegis-bridge
+        this.aiTyper = new AiTyperNode(this);
         this.bridge.connect();
 
         // 2. Instantiate and mount UI engines into their respective container nodes
         this.tuiScreen = new SperryTuiScreen('tui-matrix-container', this.bridge);
+        this.simplifier = new UnivacSimplificationEngine(this.tuiScreen, window.Gantry);
         this.configGui = new SperryConfigGuiPanel('viewport-gui', this.bridge);
         this.hardwarePanel = new System110080Panel('viewport-panel', this.bridge);
 
@@ -49,6 +67,52 @@ export class UnivacKvmManager {
             if (this.configGui) {
                 this.configGui.appendTelemetryLog("RADIO_ROOM", `Transmitter array write operation: [${e.detail.param}] configured to value index state [${e.detail.value}]`);
             }
+            /**
+     * Intercept method: Replaces your standard "Save" or "Commit" function
+     */
+    handleIncomingTelemetry(envelope) {
+        // Route chemical/fuel sensor data from the mainframe directly into the Periodic Table engine
+        if (envelope.action === "SENSOR_GAS_MIX") {
+             const { element, mass, temp, vol } = envelope.payload;
+             this.thermoNode.calculateChamberPressure(element, mass, temp, vol);
+        }
+        
+    bindAiTriggers() {
+        const aiBtn = document.getElementById('btn-ai-autopilot');
+        const statusFlag = document.getElementById('ai-status-flag');
+        
+        if (aiBtn) {
+            aiBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const isActive = !this.aiTyper.isActive;
+                this.aiTyper.toggleAutopilot(isActive);
+                
+                // Update UI Visuals
+                if (isActive) {
+                    aiBtn.style.background = "linear-gradient(to bottom, #76B900, #4A7A00)"; // NVIDIA Green
+                    aiBtn.style.color = "#FFF";
+                    aiBtn.textContent = "STOP AI NODE";
+                    if (statusFlag) {
+                        statusFlag.textContent = "AI RUNNING CIVILIZATION";
+                        statusFlag.style.color = "#76B900";
+                    }
+                } else {
+                    aiBtn.style.background = ""; // Reset
+                    aiBtn.style.color = "";
+                    aiBtn.textContent = "ENABLE AI TYPER";
+                    if (statusFlag) {
+                        statusFlag.textContent = "AI OFFLINE";
+                        statusFlag.style.color = "#888";
+                    }
+    commitFileToStorage(filename, rawCodeContent) {
+        // FORCE simplification before anything goes to storage
+        const optimizedContent = this.simplifier.processAndSimplify(rawCodeContent, filename);
+
+        // Now save the ultra-fast, simplified equivalent
+        localStorage.setItem(`UNIVAC_FS_${filename}`, optimizedContent);
+        
+        console.log(`Successfully compacted and saved: ${filename}`);
+    }
         });
 
         this.bindNavigationTargets();
