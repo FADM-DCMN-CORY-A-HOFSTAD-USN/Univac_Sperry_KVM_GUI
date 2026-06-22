@@ -1,4 +1,4 @@
-import { UnivacBridgeClient } from '../src/core/bridge-client.js';
+import { UnivacBridgeClient } from './src/core/bridge-client.js';
 
 // Initialize the bridge (pointing to the port we opened in Python)
 const bridge = new UnivacBridgeClient('ws://localhost:8765');
