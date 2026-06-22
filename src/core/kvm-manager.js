@@ -301,7 +301,32 @@ export class UnivacKvmManager {
             this.tuiScreen.render();
         }
     }
+    // Example array mapping your KVM states
+const KVM_MODES = [
+    { id: 'mode-teletank', label: 'TELETANK_CMD' },
+    { id: 'mode-csf-firewall', label: 'CSF_FIREWALL' },
+    { id: 'mode-univac-tui', label: 'TUI_BUFFER' }
+];
 
+let currentModeIndex = 0;
+
+function cycleKvmDisplay() {
+    // 1. Hide the current screen
+    document.getElementById(KVM_MODES[currentModeIndex].id).style.display = 'none';
+    
+    // 2. Increment the cycle
+    currentModeIndex = (currentModeIndex + 1) % KVM_MODES.length;
+    
+    // 3. Show the new screen
+    document.getElementById(KVM_MODES[currentModeIndex].id).style.display = 'block';
+    
+    // 4. Fire the payload through your existing bridge-client.js pipeline
+    // This tells the Python core that the operator just swapped the KVM view
+    bridge.sendKvmCycleEvent(currentModeIndex, KVM_MODES[currentModeIndex].label);
+}
+
+// Bind to whatever UI element or hardware interrupt triggers the scroll
+document.getElementById('btn-kvm-cycle').addEventListener('click', cycleKvmDisplay);
     /**
      * Core router handling inbound live mainframe schema updates or register changes
      */
